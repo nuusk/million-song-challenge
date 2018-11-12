@@ -79,6 +79,10 @@ class Database {
     await this.getMostPopularTracks();
     console.log('# Task 1 finished.\n');
 
+    console.log('\n<Task 2> Prepare to list Most active users.');
+    await this.getUsersWithMostUniqueTracksListened();
+    console.log('# Task 2 finished.\n');
+
     console.log('# Proceed to finish operation.');
     this.quit();
     console.log('# You should not have seen this message, captain.');
@@ -304,6 +308,19 @@ class Database {
       `
     );
     
+    console.table(results.rows);
+  }
+
+  async getUsersWithMostUniqueTracksListened() {
+    const results = await this.client.query(
+      ` SELECT user_id, COUNT(DISTINCT track_id) as unique_tracks_counter
+        FROM tracks JOIN listen_activities USING(track_id)
+        GROUP BY user_id
+        ORDER BY unique_tracks_counter DESC
+        FETCH FIRST 5 ROWS ONLY
+      `
+    );
+
     console.table(results.rows);
   }
 
