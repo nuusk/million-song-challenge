@@ -4,11 +4,13 @@ const copyFrom = require('pg-copy-streams').from;
 const replaceStream = require('replacestream');
 
 require('dotenv').config();
-const FILE_SEPARATOR = '<SEP>'
-const REPLACED_FILE_SEPARATOR = ',';
+
+const FILE_SEPARATOR = process.env.FILE_SEPATATOR || '<SEP>';
+const REPLACED_FILE_SEPARATOR = process.env.REPLACED_FILE_SEPARATOR || ',';
 
 class Database {
   constructor() {
+
     this.client = new Client({
       user: process.env.DB_USER,
       host: process.env.DB_HOST,
