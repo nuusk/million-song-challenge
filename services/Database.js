@@ -70,10 +70,14 @@ class Database {
     await this.indexTables();
     console.log('# Tables have been indexed.');
 
-    console.log('# Prepare to list results.');
+    // console.log('# Prepare to list results.');
     // await this.getTracks();
-    await this.getActivities();
-    console.log('# Listing finished.');
+    // await this.getActivities();
+    // console.log('# Listing finished.');
+
+    console.log('\n<Task 1> Prepare to list Most popular tracks.');
+    await this.getMostPopularTracks();
+    console.log('# Task 1 finished.\n');
 
     console.log('# Proceed to finish operation.');
     this.quit();
@@ -151,7 +155,7 @@ class Database {
     });
     
     const createActivities = this.client.query(
-      'create table if not exists LISTEN_ACTIVITIES (TRACK_ID TEXT, USER_ID TEXT, ACTIVITY_DATE NUMERIC)'
+      'create table if not exists LISTEN_ACTIVITIES (USER_ID TEXT, TRACK_ID TEXT, ACTIVITY_DATE NUMERIC)'
     ).then(res => {
       console.log('[init] Successfully created LISTEN_ACTIVITIES table.');
     }).catch(err => {
@@ -242,7 +246,7 @@ class Database {
     
     const activityPromise = new Promise((resolve, reject) => {
 
-      const stream = this.client.query(copyFrom(`copy LISTEN_ACTIVITIES (TRACK_ID, USER_ID, ACTIVITY_DATE) from stdin with delimiter '${REPLACED_FILE_SEPARATOR}'`));
+      const stream = this.client.query(copyFrom(`copy LISTEN_ACTIVITIES (USER_ID, TRACK_ID, ACTIVITY_DATE) from stdin with delimiter '${REPLACED_FILE_SEPARATOR}'`));
       const activityStream = fs.createReadStream(files[0]);
       
       activityStream.on('error', reject);
@@ -254,7 +258,7 @@ class Database {
     });
 
     const trackPromise = new Promise((resolve, reject) => {
-      const stream = this.client.query(copyFrom(`COPY tracks FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
+      const stream = this.client.query(copyFrom(`COPY tracks (RECORDING_ID, TRACK_ID, ARTIST_NAME, TRACK_NAME) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
       const trackStream = fs.createReadStream(files[1]);
 
       trackStream.on('error', reject);
@@ -266,73 +270,37 @@ class Database {
     });
 
     return Promise.all([trackPromise, activityPromise]);
-   }
+  }
 
-   async getTracks() {
-    const tracks = await this.client.query({
-      rowMode: 'array',
-      text: 'select * from TRACKS'
-    });
+  async getTracks() {
+  const tracks = await this.client.query({
+    rowMode: 'array',
+    text: 'select * from TRACKS'
+  });
 
-    tracks.rows.forEach(track => {
-      console.log(track);
-    });
-   }
+  tracks.rows.forEach(track => {
+    console.log(track);
+  });
+  }
 
-   async getActivities() {
-    const activities = await this.client.query({
-      rowMode: 'array',
-      text: 'select * from LISTEN_ACTIVITIES'
-    });
+  async getActivities() {
+  const activities = await this.client.query({
+    rowMode: 'array',
+    text: 'select * from LISTEN_ACTIVITIES'
+  });
 
-    activities.rows.forEach(activity => {
-      console.log(activity);
-    });
-   }
+  activities.rows.forEach(activity => {
+    console.log(activity);
+  });
+  }
 
   async getMostPopularTracks() {
-    const tracks = await this.client.query(
-      'select * from LISTEN_ACTIVITIES'
-      // 'select TRACK_NAME, ARTIST_NAME, count(*) as occ from TRACKS join LISTEN_ACTIVITIES using(TRACK_ID) group by (ARTIST_NAME, TRACK_NAME) order by occ desc fetch first 10 rows only'
+    const results = await this.client.query(
+      'select TRACK_NAME, ARTIST_NAME, count(*) as occ from TRACKS join LISTEN_ACTIVITIES using(TRACK_ID) group by (ARTIST_NAME, TRACK_NAME) order by occ desc fetch first 10 rows only'
     );
     
-    //console.log(tracks);
-
-    tracks.rows.forEach(track => {
-      //console.log(track);
-      // //console.log(`${track.track_name} ${track.artist_name} ${track.track_name}`);
-    });
-  }
-
-  async addTrack(track) {
-
-    await this.client.query(
-      `insert into TRACKS ( \
-        TRACK_ID, RECORDING_ID, ARTIST_NAME, TRACK_NAME \
-      ) values ( \
-        '${track.trackID}', '${track.recordingID}', '${toDoubleQuotes(track.artistName)}', '${toDoubleQuotes(track.trackName)}' \
-      )`
-    );
-  }
-
-  async addListenActivity(listenActivity) {
-  
-    await this.client.query(
-      `insert into LISTEN_ACTIVITIES ( \
-        TRACK_ID, USER_ID, ACTIVITY_DATE \
-      ) values ( \
-        '${listenActivity.trackID}', '${listenActivity.userID}', '${formatDate(listenActivity.date)}'::date \
-      )`
-    );
-
-  }
-
-  findTracks() {
-    return new Promise((resolve, reject) => {
-      Track.find({})
-        .then((tracks) => {
-          resolve(tracks);
-        });
+    results.rows.forEach(result => {
+      console.log(result);
     });
   }
 
