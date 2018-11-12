@@ -86,7 +86,10 @@ class Database {
     console.log('\n<Task 3> Prepare to get the most popular artist.');
     await this.getMostPopularArtist();
     console.log('# Task 3 finished.\n');
-    
+
+    console.log('\n<Task 4> Prepare to list monthly listen activities.');
+    await this.getMonthlyListenActivities();
+    console.log('# Task 4 finished.\n');
 
     console.log('# Proceed to finish operation.');
     this.quit();
@@ -339,6 +342,15 @@ class Database {
 
     console.table(results.rows);
   };
+
+  async getMonthlyListenActivities() {
+    const results = await this.client.query(
+      ` SELECT TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS month, COUNT(*)
+        FROM tracks JOIN listen_activities USING(track_id) GROUP BY month ORDER BY month ASC`
+    );
+
+    console.table(results.rows);
+  }
 
   quit() {
     this.pool.end();
