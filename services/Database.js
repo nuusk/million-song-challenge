@@ -89,17 +89,17 @@ class Database {
   reindexTables() {
 
     const reindexTracks = this.client.query(
-      `reindex TRACKS`
+      `reindex tracks`
     ).then(res => {
-      console.log('[index] TRACKS table has been reindexed.');
+      console.log('[index] tracks table has been reindexed.');
     }).catch(err => {
       console.error(err);
     });
 
     const reindexActivities = this.client.query(
-      `reindex LISTEN_ACTIVITIES`
+      `reindex listen_activities`
     ).then(res => {
-      console.log('[index] LISTEN_ACTIVITIES table has been reindexed.');
+      console.log('[index] listen_activities table has been reindexed.');
     }).catch(err => {
       console.error(err);
     });
@@ -112,7 +112,7 @@ class Database {
     const indexTracks = this.client.query(
       `CREATE INDEX track_index ON tracks(track_id, artist_name, track_name)`
     ).then(res => {
-      console.log('[index] TRACKS table has been indexed.');
+      console.log('[index] tracks table has been indexed.');
     }).catch(err => {
       console.error(err);
     });
@@ -120,7 +120,7 @@ class Database {
     const indexActivities = this.client.query(
       `CREATE INDEX activity_index ON listen_activities(track_id, user_id, activity_date)`
     ).then(res => {
-      console.log('[index] LISTEN_ACTIVITIES table has been indexed.');
+      console.log('[index] listen_activities table has been indexed.');
     }).catch(err => {
       console.error(err);
     });
@@ -131,33 +131,33 @@ class Database {
   initializeTables() {
 
     const dropTracks = this.client.query(
-      `drop table if exists TRACKS`
+      `drop table if exists tracks`
     ).then(res => {
-      console.log('[init] Successfully deleted TRACKS table.');
+      console.log('[init] Successfully deleted tracks table.');
     }).catch(err => {
       console.error(e.stack);
     });
 
     const dropActivities = this.client.query(
-      `drop table if exists LISTEN_ACTIVITIES`
+      `drop table if exists listen_activities`
     ).then(res => {
-      console.log('[init] Successfully deleted LISTEN_ACTIVITIES table.');
+      console.log('[init] Successfully deleted listen_activities table.');
     }).catch(err => {
       console.error(e.stack);
     });
 
     const createTracks = this.client.query(
-      'create table if not exists TRACKS (RECORDING_ID TEXT, TRACK_ID TEXT, ARTIST_NAME TEXT, TRACK_NAME TEXT)'
+      'CREATE TABLE IF NOT EXISTS tracks (recording_id TEXT, track_id TEXT, artist_name TEXT, track_name TEXT)'
     ).then(res => {
-      console.log('[init] Successfully created TRACKS table.');
+      console.log('[init] Successfully created tracks table.');
     }).catch(err => {
       console.error(e.stack);
     });
     
     const createActivities = this.client.query(
-      'create table if not exists LISTEN_ACTIVITIES (USER_ID TEXT, TRACK_ID TEXT, ACTIVITY_DATE NUMERIC)'
+      'CREATE TABLE IF NOT EXISTS listen_activities (user_id TEXT, track_id TEXT, activity_date NUMERIC)'
     ).then(res => {
-      console.log('[init] Successfully created LISTEN_ACTIVITIES table.');
+      console.log('[init] Successfully created listen_activities table.');
     }).catch(err => {
       console.error(e.stack);
     });
@@ -178,10 +178,10 @@ class Database {
       WHERE indrelid = (
         SELECT oid
         FROM pg_class
-        WHERE relname='LISTEN_ACTIVITIES'
+        WHERE relname='listen_activities'
       )`
     ).then(() => {
-      console.log('[index] Indexes on LISTEN_ACTIVITIES table have been enabled.');
+      console.log('[index] Indexes on listen_activities table have been enabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -192,10 +192,10 @@ class Database {
       WHERE indrelid = (
         SELECT oid
         FROM pg_class
-        WHERE relname='TRACKS'
+        WHERE relname='tracks'
       )`
     ).then(() => {
-      console.log('[index] Indexes on TRACKS table have been enabled.');
+      console.log('[index] Indexes on tracks table have been enabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -211,10 +211,10 @@ class Database {
       WHERE indrelid = (
         SELECT oid
         FROM pg_class
-        WHERE relname='LISTEN_ACTIVITIES'
+        WHERE relname='listen_activities'
       )`
     ).then(() => {
-      console.log('[index] Indexes on LISTEN_ACTIVITIES table have been disabled.');
+      console.log('[index] Indexes on listen_activities table have been disabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -225,10 +225,10 @@ class Database {
       WHERE indrelid = (
         SELECT oid
         FROM pg_class
-        WHERE relname='TRACKS'
+        WHERE relname='tracks'
       )`
     ).then(() => {
-      console.log('[index] Indexes on TRACKS table have been disabled.');
+      console.log('[index] Indexes on tracks table have been disabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -246,7 +246,7 @@ class Database {
     
     const activityPromise = new Promise((resolve, reject) => {
 
-      const stream = this.client.query(copyFrom(`copy LISTEN_ACTIVITIES (USER_ID, TRACK_ID, ACTIVITY_DATE) from stdin with delimiter '${REPLACED_FILE_SEPARATOR}'`));
+      const stream = this.client.query(copyFrom(`copy listen_activities (user_id, track_id, activity_date) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
       const activityStream = fs.createReadStream(files[0]);
       
       activityStream.on('error', reject);
@@ -258,7 +258,7 @@ class Database {
     });
 
     const trackPromise = new Promise((resolve, reject) => {
-      const stream = this.client.query(copyFrom(`COPY tracks (RECORDING_ID, TRACK_ID, ARTIST_NAME, TRACK_NAME) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
+      const stream = this.client.query(copyFrom(`COPY tracks (recording_id, track_id, artist_name, track_name) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
       const trackStream = fs.createReadStream(files[1]);
 
       trackStream.on('error', reject);
@@ -275,7 +275,7 @@ class Database {
   async getTracks() {
   const tracks = await this.client.query({
     rowMode: 'array',
-    text: 'select * from TRACKS'
+    text: 'SELECT * FROM tracks'
   });
 
   tracks.rows.forEach(track => {
@@ -286,7 +286,7 @@ class Database {
   async getActivities() {
   const activities = await this.client.query({
     rowMode: 'array',
-    text: 'select * from LISTEN_ACTIVITIES'
+    text: 'SELECT * FROM listen_activities'
   });
 
   activities.rows.forEach(activity => {
@@ -296,7 +296,12 @@ class Database {
 
   async getMostPopularTracks() {
     const results = await this.client.query(
-      'select TRACK_NAME, ARTIST_NAME, count(*) as occ from TRACKS join LISTEN_ACTIVITIES using(TRACK_ID) group by (ARTIST_NAME, TRACK_NAME) order by occ desc fetch first 10 rows only'
+      ` SELECT track_name, artist_name, COUNT(*) as popularity_counter
+        FROM tracks JOIN listen_activities USING(track_id)
+        GROUP BY (artist_name, track_name)
+        ORDER BY popularity_counter DESC
+        FETCH FIRST 10 ROWS ONLY
+      `
     );
     
     results.rows.forEach(result => {
