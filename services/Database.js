@@ -7,11 +7,6 @@ require('dotenv').config();
 const FILE_SEPARATOR = '<SEP>'
 const REPLACED_FILE_SEPARATOR = ',';
 
-// const datasourcesConfigFilePath = path.join(__dirname,'..','..','server','datasources.json');
-// const datasources = JSON.parse(fs.readFileSync(datasourcesConfigFilePath, 'utf8'));
-
-const { toDoubleQuotes, formatDate } = require('../scripts/utilities');
-
 class Database {
   constructor() {
     this.client = new Client({
@@ -98,8 +93,6 @@ class Database {
     console.log('# Proceed to finish operation.');
     this.quit();
     console.log('# You should not have seen this message, captain.');
-
-    // await this.getMostPopularTracks();
   }
 
   reindexTables() {
