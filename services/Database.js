@@ -304,9 +304,7 @@ class Database {
       `
     );
     
-    results.rows.forEach(result => {
-      console.log(result);
-    });
+    console.table(results.rows);
   }
 
   quit() {
