@@ -83,6 +83,11 @@ class Database {
     await this.getUsersWithMostUniqueTracksListened();
     console.log('# Task 2 finished.\n');
 
+    console.log('\n<Task 3> Prepare to get the most popular artist.');
+    await this.getMostPopularArtist();
+    console.log('# Task 3 finished.\n');
+    
+
     console.log('# Proceed to finish operation.');
     this.quit();
     console.log('# You should not have seen this message, captain.');
@@ -323,6 +328,17 @@ class Database {
 
     console.table(results.rows);
   }
+
+  async getMostPopularArtist() {
+    const results = await this.client.query(
+      ` SELECT artist_name, COUNT(*) as listen_counter
+        FROM tracks JOIN listen_activities USING(track_id)
+        GROUP BY artist_name
+      `
+    );
+
+    console.table(results.rows);
+  };
 
   quit() {
     this.pool.end();
