@@ -91,6 +91,10 @@ class Database {
     await this.getMonthlyListenActivities();
     console.log('# Task 4 finished.\n');
 
+    console.log('\n<Task 5> Prepare to list Queen fanboys.');
+    await this.getQueenFanboys();
+    console.log('# Task 5 finished.\n');  
+
     console.log('# Proceed to finish operation.');
     this.quit();
     console.log('# You should not have seen this message, captain.');
@@ -347,6 +351,27 @@ class Database {
     const results = await this.client.query(
       ` SELECT TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS month, COUNT(*)
         FROM tracks JOIN listen_activities USING(track_id) GROUP BY month ORDER BY month ASC`
+    );
+
+    console.table(results.rows);
+  }
+
+  async getQueenFanboys() {
+    const results = await this.client.query(
+      ` SELECT COUNT(DISTINCT hits.track_id), activities.user_id FROM
+        listen_activities AS activities
+        JOIN (
+          SELECT COUNT(*) AS listen_counter, track_id
+          FROM tracks JOIN listen_activities
+          USING(track_id)
+          WHERE lower(artist_name) = 'queen'
+          GROUP BY track_id
+          ORDER BY listen_counter DESC
+          FETCH FIRST 3 ROWS ONLY
+        ) as hits
+        ON activities.track_id = hits.track_id
+        GROUP BY user_id HAVING COUNT(DISTINCT hits.track_id) = 3
+      `
     );
 
     console.table(results.rows);
