@@ -34,14 +34,19 @@ class Database {
     //   this.main();
     // })
 
-    this.client.connect().then(() => {
-      console.log('Successfully connected to db...');
-      this.main();
+    // this.client.connect().then(() => {
+    //   console.log('Successfully connected to db...');
+    //   this.main();
+    // });
+  }
+
+  connect() {
+    return this.client.connect().then(() => {
+      console.log('Successfully connected to db...\n');
     });
   }
 
   async main() {
-
     await this.initializeTables();
     console.log('# Tables have been initialized.');
 
