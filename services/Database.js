@@ -10,7 +10,6 @@ const REPLACED_FILE_SEPARATOR = process.env.REPLACED_FILE_SEPARATOR || ',';
 
 class Database {
   constructor() {
-
     this.client = new Client({
       user: process.env.DB_USER,
       host: process.env.DB_HOST,
@@ -18,28 +17,13 @@ class Database {
       password: process.env.DB_PASSWORD,
       port: process.env.DB_PORT
     });
-
-    this.pool = new Pool({
-      user: process.env.DB_USER,
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      password: process.env.DB_PASSWORD,
-      port: process.env.DB_PORT
-    });
-    // this.pool.connect().then(() => {
-    //   console.log('Successfully connected to db...');
-    //   this.main();
-    // })
-
-    // this.client.connect().then(() => {
-    //   console.log('Successfully connected to db...');
-    //   this.main();
-    // });
   }
 
   connect() {
-    return this.client.connect().then(() => {
-      console.log('Successfully connected to db...\n');
+    return this.client.connect().then(err => {
+      if (!err) {
+        console.log('Successfully connected to db...\n');
+      }
     });
   }
 
@@ -373,7 +357,7 @@ class Database {
   }
 
   quit() {
-    this.pool.end();
+    this.client.end();
   }
 }
 
