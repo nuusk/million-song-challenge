@@ -7,6 +7,9 @@ require('dotenv').config();
 
 const FILE_SEPARATOR = process.env.FILE_SEPATATOR || '<SEP>';
 const REPLACED_FILE_SEPARATOR = process.env.REPLACED_FILE_SEPARATOR || ',';
+const TIMER_LABEL = 'TIMER_LABEL';
+
+const MODE = process.env.MODE || 'prod';
 
 class Database {
   constructor() {
@@ -22,63 +25,48 @@ class Database {
   connect() {
     return this.client.connect().then(err => {
       if (!err) {
-        console.log('Successfully connected to db...\n');
+        if (MODE !== 'prod') console.log('Successfully connected to db...\n');
       }
     });
   }
 
-  async main() {
-    await this.initializeTables();
-    console.log('# Tables have been initialized.');
+  wrapTask(task) {
+    return new Promise((resolve, reject) => {
+      if (MODE !== 'prod') {
+        console.time(task.name);
+        console.log(`# Begin ${task.name} procedure`);
+      }
+      task.bind(this)()
+        .then(() => {
+          if (MODE !== 'prod') {
+            console.log(`# Task ${task.name} finished`);
+            console.timeEnd(task.name);
+            console.log('\n');
+          }
+          resolve();
+        })
+        .catch(reject);
+    }) 
+  }
 
-    // console.log('# Begin disable indexes procedure.')
-    // await this.disableIndexes();
-    // console.log('# Indexes have been disabled.');
+  main() {
+    const tasks = [
+      this.initializeTables,
+      this.fillDatabase,
+      this.indexTables,
+      this.getMostPopularTracks,
+      this.getUsersWithMostUniqueTracksListened,
+      this.getMostPopularArtist,
+      this.getMonthlyListenActivities,
+      this.getQueenFanboys,
+      this.quit
+    ];
 
-    console.log('# Begin fill database procedure.')
-    await this.fillDatabase();
-    console.log('# Fill database ended without failure.');
-
-    // console.log('# Begin enable indexes procedure.')
-    // await this.enableIndexes();
-    // console.log('# Indexes have been enabled.');
-
-    // console.log('# Begin reindex procedure.')
-    // await this.reindexTables();
-    // console.log('# Tables have been reindexed.');
-
-    console.log('# Begin Index procedure.')
-    await this.indexTables();
-    console.log('# Tables have been indexed.');
-
-    // console.log('# Prepare to list results.');
-    // await this.getTracks();
-    // await this.getActivities();
-    // console.log('# Listing finished.');
-
-    console.log('\n<Task 1> Prepare to list Most popular tracks.');
-    await this.getMostPopularTracks();
-    console.log('# Task 1 finished.\n');
-
-    console.log('\n<Task 2> Prepare to list Most active users.');
-    await this.getUsersWithMostUniqueTracksListened();
-    console.log('# Task 2 finished.\n');
-
-    console.log('\n<Task 3> Prepare to get the most popular artist.');
-    await this.getMostPopularArtist();
-    console.log('# Task 3 finished.\n');
-
-    console.log('\n<Task 4> Prepare to list monthly listen activities.');
-    await this.getMonthlyListenActivities();
-    console.log('# Task 4 finished.\n');
-
-    console.log('\n<Task 5> Prepare to list Queen fanboys.');
-    await this.getQueenFanboys();
-    console.log('# Task 5 finished.\n');  
-
-    console.log('# Proceed to finish operation.');
-    this.quit();
-    console.log('# You should not have seen this message, captain.');
+    (async function() {
+      for (let i = 0; i < tasks.length; i++) {
+        await this.wrapTask(tasks[i]);
+      }
+    }.bind(this))();
   }
 
   reindexTables() {
@@ -86,7 +74,7 @@ class Database {
     const reindexTracks = this.client.query(
       `reindex tracks`
     ).then(res => {
-      console.log('[index] tracks table has been reindexed.');
+      if (MODE !== 'prod') console.log('[index] tracks table has been reindexed.');
     }).catch(err => {
       console.error(err);
     });
@@ -94,7 +82,7 @@ class Database {
     const reindexActivities = this.client.query(
       `reindex listen_activities`
     ).then(res => {
-      console.log('[index] listen_activities table has been reindexed.');
+      if (MODE !== 'prod') console.log('[index] listen_activities table has been reindexed.');
     }).catch(err => {
       console.error(err);
     });
@@ -107,7 +95,7 @@ class Database {
     const indexTracks = this.client.query(
       `CREATE INDEX track_index ON tracks(track_id, artist_name, track_name)`
     ).then(res => {
-      console.log('[index] tracks table has been indexed.');
+      if (MODE !== 'prod') console.log('[index] tracks table has been indexed.');
     }).catch(err => {
       console.error(err);
     });
@@ -115,7 +103,7 @@ class Database {
     const indexActivities = this.client.query(
       `CREATE INDEX activity_index ON listen_activities(track_id, user_id, activity_date)`
     ).then(res => {
-      console.log('[index] listen_activities table has been indexed.');
+      if (MODE !== 'prod') console.log('[index] listen_activities table has been indexed.');
     }).catch(err => {
       console.error(err);
     });
@@ -128,7 +116,7 @@ class Database {
     const dropTracks = this.client.query(
       `drop table if exists tracks`
     ).then(res => {
-      console.log('[init] Successfully deleted tracks table.');
+      if (MODE !== 'prod') console.log('[init] Successfully deleted tracks table.');
     }).catch(err => {
       console.error(e.stack);
     });
@@ -136,7 +124,7 @@ class Database {
     const dropActivities = this.client.query(
       `drop table if exists listen_activities`
     ).then(res => {
-      console.log('[init] Successfully deleted listen_activities table.');
+      if (MODE !== 'prod') console.log('[init] Successfully deleted listen_activities table.');
     }).catch(err => {
       console.error(e.stack);
     });
@@ -144,7 +132,7 @@ class Database {
     const createTracks = this.client.query(
       'CREATE TABLE IF NOT EXISTS tracks (recording_id TEXT, track_id TEXT, artist_name TEXT, track_name TEXT)'
     ).then(res => {
-      console.log('[init] Successfully created tracks table.');
+      if (MODE !== 'prod') console.log('[init] Successfully created tracks table.');
     }).catch(err => {
       console.error(e.stack);
     });
@@ -152,7 +140,7 @@ class Database {
     const createActivities = this.client.query(
       'CREATE TABLE IF NOT EXISTS listen_activities (user_id TEXT, track_id TEXT, activity_date NUMERIC)'
     ).then(res => {
-      console.log('[init] Successfully created listen_activities table.');
+      if (MODE !== 'prod') console.log('[init] Successfully created listen_activities table.');
     }).catch(err => {
       console.error(e.stack);
     });
@@ -176,7 +164,7 @@ class Database {
         WHERE relname='listen_activities'
       )`
     ).then(() => {
-      console.log('[index] Indexes on listen_activities table have been enabled.');
+      if (MODE !== 'prod') console.log('[index] Indexes on listen_activities table have been enabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -190,7 +178,7 @@ class Database {
         WHERE relname='tracks'
       )`
     ).then(() => {
-      console.log('[index] Indexes on tracks table have been enabled.');
+      if (MODE !== 'prod') console.log('[index] Indexes on tracks table have been enabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -209,7 +197,7 @@ class Database {
         WHERE relname='listen_activities'
       )`
     ).then(() => {
-      console.log('[index] Indexes on listen_activities table have been disabled.');
+      if (MODE !== 'prod') console.log('[index] Indexes on listen_activities table have been disabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -223,7 +211,7 @@ class Database {
         WHERE relname='tracks'
       )`
     ).then(() => {
-      console.log('[index] Indexes on tracks table have been disabled.');
+      if (MODE !== 'prod') console.log('[index] Indexes on tracks table have been disabled.');
     }).catch(err => {
       console.error(err);
     });
@@ -234,8 +222,8 @@ class Database {
   fillDatabase() {
 
     const files = [
-      `${__dirname}/../listenActivities.txt`, 
-      `${__dirname}/../tracks.txt`,
+      `${__dirname}/../listenActivities2.txt`, 
+      `${__dirname}/../tracks2.txt`,
       `${__dirname}/../test.txt`
     ];
     
@@ -308,7 +296,7 @@ class Database {
         FROM tracks JOIN listen_activities USING(track_id)
         GROUP BY user_id
         ORDER BY unique_tracks_counter DESC
-        FETCH FIRST 5 ROWS ONLY
+        FETCH FIRST 10 ROWS ONLY
       `
     );
 
@@ -349,7 +337,9 @@ class Database {
           FETCH FIRST 3 ROWS ONLY
         ) as hits
         ON activities.track_id = hits.track_id
-        GROUP BY user_id HAVING COUNT(DISTINCT hits.track_id) = 3
+        GROUP BY user_id
+        HAVING COUNT(DISTINCT hits.track_id) = 3
+        ORDER BY user_id DESC
       `
     );
 
