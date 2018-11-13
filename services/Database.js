@@ -287,7 +287,13 @@ class Database {
       `
     );
     
-    console.table(results.rows);
+    if (MODE !== 'prod') {
+      console.table(results.rows);
+    } else {
+      for (let i = 0; i < results.rowCount; i++) {
+        console.log(`${results.rows[i].track_name} ${results.rows[i].artist_name} ${results.rows[i].popularity_counter}`);
+      }
+    }
   }
 
   async getUsersWithMostUniqueTracksListened() {
@@ -300,7 +306,13 @@ class Database {
       `
     );
 
-    console.table(results.rows);
+    if (MODE !== 'prod') {
+      console.table(results.rows);
+    } else {
+      for (let i = 0; i < results.rowCount; i++) {
+        console.log(`${results.rows[i].user_id} ${results.rows[i].unique_tracks_counter}`);
+      }
+    }
   }
 
   async getMostPopularArtist() {
@@ -308,10 +320,15 @@ class Database {
       ` SELECT artist_name, COUNT(*) as listen_counter
         FROM tracks JOIN listen_activities USING(track_id)
         GROUP BY artist_name
+        FETCH FIRST 1 ROWS ONLY
       `
     );
 
-    console.table(results.rows);
+    if (MODE !== 'prod') {
+      console.table(results.rows);
+    } else {
+      console.log(`${results.rows[0].artist_name} ${results.rows[0].listen_counter}`);
+    }
   };
 
   async getMonthlyListenActivities() {
@@ -320,7 +337,13 @@ class Database {
         FROM tracks JOIN listen_activities USING(track_id) GROUP BY month ORDER BY month ASC`
     );
 
-    console.table(results.rows);
+    if (MODE !=='prod') {
+      console.table(results.rows);
+    } else {
+      for (let i = 0; i < results.rowCount; i++) {
+        console.log(`${results.rows[i].month} ${results.rows[i].count}`);
+      }
+    }
   }
 
   async getQueenFanboys() {
@@ -343,7 +366,13 @@ class Database {
       `
     );
 
-    console.table(results.rows);
+    if (MODE !== 'prod') {
+      console.table(results.rows);
+    } else {
+      for (let i = 0; i < results.rowCount; i++) {
+        console.log(results.rows[i].user_id);
+      }
+    }
   }
 
   quit() {
