@@ -7,7 +7,6 @@ require('dotenv').config();
 
 const FILE_SEPARATOR = process.env.FILE_SEPATATOR || '<SEP>';
 const REPLACED_FILE_SEPARATOR = process.env.REPLACED_FILE_SEPARATOR || ',';
-const TIMER_LABEL = 'TIMER_LABEL';
 
 const MODE = process.env.MODE || 'prod';
 
