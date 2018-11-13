@@ -48,25 +48,31 @@ class Database {
     }) 
   }
 
-  main() {
+  async main() {
+    console.time('main');
     const tasks = [
       this.initializeTables,
-      this.fillDatabase,
-      this.indexTables,
-      this.getMostPopularTracks,
-      this.getUsersWithMostUniqueTracksListened,
-      this.getMostPopularArtist,
-      this.getMonthlyListenActivities,
-      this.getQueenFanboys,
-      this.getTracks,
+      this.copyFromFiles,
+      this.createSchema,
+      // this.indexTables,
+      // this.getMostPopularTracks,
+      // this.getUsersWithMostUniqueTracksListened,
+      // this.getMostPopularArtist,
+      // this.getMonthlyListenActivities,
+      // this.getQueenFanboys,
+      // this.getTracks,
+      this.getActivitiesTmp,
+      this.getActivities,
       this.quit
     ];
 
-    (async function() {
+    await (async function() {
       for (let i = 0; i < tasks.length; i++) {
         await this.wrapTask(tasks[i]);
       }
     }.bind(this))();
+
+    console.timeEnd('main');
   }
 
   reindexTables() {
@@ -111,7 +117,7 @@ class Database {
 
   initializeTables() {
     const dropTracks = this.client.query(
-      `drop table if exists tracks`
+      `DROP TABLE IF EXISTS tracks`
     ).then(res => {
       if (MODE !== 'prod') console.log('[init] Successfully deleted tracks table.');
     }).catch(err => {
@@ -119,23 +125,68 @@ class Database {
     });
 
     const dropActivities = this.client.query(
-      `drop table if exists listen_activities`
+      `DROP TABLE IF EXISTS listen_activities`
     ).then(res => {
       if (MODE !== 'prod') console.log('[init] Successfully deleted listen_activities table.');
     }).catch(err => {
       console.error(e.stack);
     });
 
+    const dropActivitiesTmp = this.client.query(
+      `DROP TABLE IF EXISTS listen_activities_tmp`
+    ).then(res => {
+      if (MODE !== 'prod') console.log('[init] Successfully deleted listen_activities_tmp table.');
+    }).catch(err => {
+      console.error(e.stack);
+    });
+
+    const dropDates = this.client.query(
+      `DROP TABLE IF EXISTS dates`
+    ).then(res => {
+      if (MODE !== 'prod') console.log('[init] Successfully deleted dates table.');
+    }).catch(err => {
+      console.error(e.stack);
+    });
+
+    const dropUsers = this.client.query(
+      `DROP TABLE IF EXISTS users`
+    ).then(res => {
+      if (MODE !== 'prod') console.log('[init] Successfully deleted users table.');
+    }).catch(err => {
+      console.error(e.stack);
+    });
+
     const createTracks = this.client.query(
-      'CREATE TABLE IF NOT EXISTS tracks (track_id TEXT, artist_name TEXT, track_name TEXT)'
+      `CREATE TABLE IF NOT EXISTS tracks (
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        track_id TEXT,
+        artist_name TEXT,
+        track_name TEXT
+      )`
     ).then(res => {
       if (MODE !== 'prod') console.log('[init] Successfully created tracks table.');
     }).catch(err => {
       console.error(e.stack);
     });
+
+    const createActivitiesTmp = this.client.query(
+      ` CREATE TABLE IF NOT EXISTS listen_activities_tmp (
+        user_id TEXT,
+        track_id TEXT,
+        activity_date NUMERIC
+      )`
+    ).then(res => {
+      if (MODE !== 'prod') console.log('[init] Successfully created listen_activities_tmp table.');
+    }).catch(err => {
+      console.error(e.stack);
+    });
     
     const createActivities = this.client.query(
-      'CREATE TABLE IF NOT EXISTS listen_activities (user_id TEXT, track_id TEXT, activity_date NUMERIC)'
+      ` CREATE TABLE IF NOT EXISTS listen_activities (
+        user_id INT,
+        track_id INT,
+        date_id INT
+      )`
     ).then(res => {
       if (MODE !== 'prod') console.log('[init] Successfully created listen_activities table.');
     }).catch(err => {
@@ -143,7 +194,12 @@ class Database {
     });
 
     const createDates = this.client.query(
-      'CREATE TABLE IF NOT EXISTS dates (year NUMERIC, month NUMERIC, day NUMERIC)'
+      ` CREATE TABLE IF NOT EXISTS dates (
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        year NUMERIC,
+        month NUMERIC,
+        day NUMERIC
+      )`
     ).then(res => {
       if (MODE !== 'prod') console.log('[init] Successfully created dates table.');
     }).catch(err => {
@@ -153,8 +209,12 @@ class Database {
     return Promise.all([
       dropTracks,
       dropActivities,
+      dropActivitiesTmp,
+      dropDates,
+      dropUsers,
       createTracks,
       createActivities,
+      createActivitiesTmp,
       createDates
     ]);
   }
@@ -223,7 +283,37 @@ class Database {
     return Promise.all([disableIndexActivities, disableIndexTracks]);
   }
 
-  fillDatabase() {
+  createSchema() {
+    const clientPromise = new Promise((resolve, reject) => {
+      this.client.query('BEGIN', (err) => {
+        if (err) reject(err);
+        this.client.query(`
+          INSERT INTO listen_activities(user_id, track_id)
+          VALUES(124, 122) RETURNING date_id
+        `, (err, res) => {
+
+          if (err) reject(err);
+    
+          const insertDateText = 'INSERT INTO dates(year, month, day) VALUES ($1, $2, $3)'
+          const insertDateValues = [1995, 7, 3]
+          this.client.query(insertDateText, insertDateValues, (err, res) => {
+            if (err) reject(err);
+    
+            this.client.query('COMMIT', (err) => {
+              if (err) {
+                console.error('Error committing transaction', err.stack)
+              }
+              resolve();
+            })
+          })
+        })
+      })
+    });
+
+    return clientPromise;
+  }
+
+  copyFromFiles() {
     const files = [
       `${__dirname}/../listenActivities2.txt`, 
       `${__dirname}/../tracks2.txt`,
@@ -232,7 +322,7 @@ class Database {
     
     const activityPromise = new Promise((resolve, reject) => {
 
-      const stream = this.client.query(copyFrom(`copy listen_activities (user_id, track_id, activity_date) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
+      const stream = this.client.query(copyFrom(`copy listen_activities_tmp (user_id, track_id, activity_date) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
       const activityStream = fs.createReadStream(files[0]);
       
       activityStream.on('error', reject);
@@ -260,19 +350,25 @@ class Database {
   }
 
   async getTracks() {
-    const results = await this.client.query({
-      rowMode: 'array',
-      text: 'SELECT * FROM tracks'
-    });
+    const results = await this.client.query(
+      `SELECT * FROM tracks`
+    );
 
     console.table(results.rows);
   }
 
   async getActivities() {
-    const results = await this.client.query({
-      rowMode: 'array',
-      text: 'SELECT * FROM listen_activities'
-    });
+    const results = await this.client.query(
+      `SELECT * FROM listen_activities`
+    );
+
+    console.table(results.rows);
+  }
+
+  async getActivitiesTmp() {
+    const results = await this.client.query(
+      `SELECT * FROM listen_activities_tmp`
+    );
 
     console.table(results.rows);
   }
