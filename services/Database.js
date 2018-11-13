@@ -1,4 +1,4 @@
-const { Pool, Client } = require('pg');
+const { Client } = require('pg');
 const fs = require('fs');
 const copyFrom = require('pg-copy-streams').from;
 const replaceStream = require('replacestream');
@@ -58,6 +58,7 @@ class Database {
       this.getMostPopularArtist,
       this.getMonthlyListenActivities,
       this.getQueenFanboys,
+      this.getTracks,
       this.quit
     ];
 
@@ -69,7 +70,6 @@ class Database {
   }
 
   reindexTables() {
-
     const reindexTracks = this.client.query(
       `reindex tracks`
     ).then(res => {
@@ -90,7 +90,6 @@ class Database {
   }
 
   indexTables() {
-
     const indexTracks = this.client.query(
       `CREATE INDEX track_index ON tracks(track_id, artist_name, track_name)`
     ).then(res => {
@@ -111,7 +110,6 @@ class Database {
   }
 
   initializeTables() {
-
     const dropTracks = this.client.query(
       `drop table if exists tracks`
     ).then(res => {
@@ -129,7 +127,7 @@ class Database {
     });
 
     const createTracks = this.client.query(
-      'CREATE TABLE IF NOT EXISTS tracks (recording_id TEXT, track_id TEXT, artist_name TEXT, track_name TEXT)'
+      'CREATE TABLE IF NOT EXISTS tracks (track_id TEXT, artist_name TEXT, track_name TEXT)'
     ).then(res => {
       if (MODE !== 'prod') console.log('[init] Successfully created tracks table.');
     }).catch(err => {
@@ -144,16 +142,24 @@ class Database {
       console.error(e.stack);
     });
 
+    const createDates = this.client.query(
+      'CREATE TABLE IF NOT EXISTS dates (year NUMERIC, month NUMERIC, day NUMERIC)'
+    ).then(res => {
+      if (MODE !== 'prod') console.log('[init] Successfully created dates table.');
+    }).catch(err => {
+      console.error(e.stack);
+    });
+
     return Promise.all([
       dropTracks,
       dropActivities,
       createTracks,
-      createActivities
+      createActivities,
+      createDates
     ]);
   }
 
   enableIndexes() {
-    
     const enableIndexActivities = this.client.query(
       `UPDATE pg_index
       SET indisready=true
@@ -186,7 +192,6 @@ class Database {
   }
 
   disableIndexes() {
-    
     const disableIndexActivities = this.client.query(
       `UPDATE pg_index
       SET indisready=false
@@ -219,7 +224,6 @@ class Database {
   }
 
   fillDatabase() {
-
     const files = [
       `${__dirname}/../listenActivities2.txt`, 
       `${__dirname}/../tracks2.txt`,
@@ -240,13 +244,14 @@ class Database {
     });
 
     const trackPromise = new Promise((resolve, reject) => {
-      const stream = this.client.query(copyFrom(`COPY tracks (recording_id, track_id, artist_name, track_name) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
+      const stream = this.client.query(copyFrom(`COPY tracks (track_id, artist_name, track_name) FROM STDIN WITH DELIMITER '${REPLACED_FILE_SEPARATOR}'`));
       const trackStream = fs.createReadStream(files[1]);
 
       trackStream.on('error', reject);
       stream.on('end', resolve);
       stream.on('error', reject);
       trackStream
+        .pipe(replaceStream(/^[^(<SEP>)]*(<SEP>)/gm, ''))     // Remove first column (it is not used anyway)
         .pipe(replaceStream(FILE_SEPARATOR, REPLACED_FILE_SEPARATOR))
         .pipe(stream);
     });
@@ -255,25 +260,21 @@ class Database {
   }
 
   async getTracks() {
-  const tracks = await this.client.query({
-    rowMode: 'array',
-    text: 'SELECT * FROM tracks'
-  });
+    const results = await this.client.query({
+      rowMode: 'array',
+      text: 'SELECT * FROM tracks'
+    });
 
-  tracks.rows.forEach(track => {
-    console.log(track);
-  });
+    console.table(results.rows);
   }
 
   async getActivities() {
-  const activities = await this.client.query({
-    rowMode: 'array',
-    text: 'SELECT * FROM listen_activities'
-  });
+    const results = await this.client.query({
+      rowMode: 'array',
+      text: 'SELECT * FROM listen_activities'
+    });
 
-  activities.rows.forEach(activity => {
-    console.log(activity);
-  });
+    console.table(results.rows);
   }
 
   async getMostPopularTracks() {
