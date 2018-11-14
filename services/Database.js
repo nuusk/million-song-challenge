@@ -316,9 +316,9 @@ class Database {
             SELECT 
               user_id,
               track_id,
-              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS year,
+              TO_CHAR(TO_TIMESTAMP(activity_date), 'YYYY') AS year,
               TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS month,
-              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS day
+              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmDD') AS day
             FROM listen_activities_tmp
             LIMIT ${BATCH_SIZE}
             OFFSET ${i*BATCH_SIZE}
