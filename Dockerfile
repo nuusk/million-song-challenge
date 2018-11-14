@@ -2,8 +2,6 @@ FROM alpine
 
 MAINTAINER Poe "piotr.a.ptak@icloud.com"
 
-ENV DEBIAN_FRONTEND noninteractive
-
 RUN apk update \
     && apk add sudo \
     && apk add curl \
