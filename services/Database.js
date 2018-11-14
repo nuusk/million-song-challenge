@@ -1,6 +1,7 @@
 const { Client } = require('pg');
 const fs = require('fs');
 const copyFrom = require('pg-copy-streams').from;
+const format = require('pg-format');
 const replaceStream = require('replacestream');
 
 require('dotenv').config();
@@ -61,8 +62,8 @@ class Database {
       // this.getMonthlyListenActivities,
       // this.getQueenFanboys,
       // this.getTracks,
-      this.getActivitiesTmp,
-      this.getActivities,
+      // this.getActivitiesTmp,
+      // this.getActivities,
       this.quit
     ];
 
@@ -287,17 +288,32 @@ class Database {
     const clientPromise = new Promise((resolve, reject) => {
       this.client.query('BEGIN', (err) => {
         if (err) reject(err);
+
+        // INSERT INTO listen_activities(user_id, track_id)
+          // SELECT user_id::int, track_id
+          // FROM listen_activities_tmp
         this.client.query(`
-          INSERT INTO listen_activities(user_id, track_id)
-          VALUES(124, 122) RETURNING date_id
+          SELECT * FROM listen_activities_tmp
         `, (err, res) => {
+
+          console.table(res.rows);
 
           if (err) reject(err);
     
-          const insertDateText = 'INSERT INTO dates(year, month, day) VALUES ($1, $2, $3)'
-          const insertDateValues = [1995, 7, 3]
-          this.client.query(insertDateText, insertDateValues, (err, res) => {
+          const insertDateText = (`
+            INSERT INTO dates(year, month, day)
+            VALUES %L
+            RETURNING year, month, day
+          `);
+          const insertDateValues = [
+            [1995, 7, 3],
+            [1995, 7, 2],
+            [1995, 7, 1]
+          ]
+          this.client.query(format(insertDateText, insertDateValues), (err, res) => {
             if (err) reject(err);
+
+            console.table(res.rows);
     
             this.client.query('COMMIT', (err) => {
               if (err) {

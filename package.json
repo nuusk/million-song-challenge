@@ -16,6 +16,7 @@
     "line-by-line": "^0.1.6",
     "pg": "^7.6.1",
     "pg-copy-streams": "^1.2.0",
+    "pg-format": "^1.0.4",
     "pg-promise": "^8.5.2",
     "replacestream": "^4.0.3",
     "sequelize": "^4.41.1",
