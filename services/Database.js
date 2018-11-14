@@ -56,7 +56,7 @@ class Database {
     const tasks = [
       this.initializeTables,
       this.copyFromFiles,
-      this.createSchema,
+      // this.createSchema,
       // this.indexTables,
       // this.getMostPopularTracks,
       // this.getUsersWithMostUniqueTracksListened,
@@ -66,7 +66,7 @@ class Database {
       // this.getTracks,
       // this.getActivitiesTmp,
       // this.getActivities,
-      this.quit
+      // this.quit
     ];
 
     await (async function() {
@@ -300,7 +300,7 @@ class Database {
 
   createSchema() {
     const BATCH_SIZE = 10;
-    const ITERATION_NUM = 40;
+    // const MAX_ITERATION_NUM = 40; Consider implementing maximum number of queries
     let clientPromise;
     const commitPromise = new Promise((commitResolve, commitReject) => {
       clientPromise = new Promise((resolve, reject) => {
@@ -308,7 +308,7 @@ class Database {
           if (err) reject(err);
   
           (async function processArray() {
-            for (let i = 0; i < ITERATION_NUM; i++) {
+            for (let i = 0; ; i++) {
               await this.client.query(`
                 SELECT 
                   user_id,
@@ -366,8 +366,8 @@ class Database {
 
   copyFromFiles() {
     const files = [
-      `${__dirname}/../listenActivities2.txt`, 
-      `${__dirname}/../tracks2.txt`,
+      `${__dirname}/../listenActivities.txt`, 
+      `${__dirname}/../tracks.txt`,
       `${__dirname}/../test.txt`
     ];
     
