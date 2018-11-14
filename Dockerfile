@@ -17,5 +17,5 @@ COPY triplets_sample_20p.txt .
 # Copy source code
 COPY sqlite_example.sh .
 
-# Set starting command (run your code)
-CMD bash sqlite_example.sh
+# Run the app
+CMD bash app.sh
