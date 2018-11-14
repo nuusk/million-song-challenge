@@ -13,3 +13,5 @@ CMD ["npm", "start"]
 
 # Bundle app source
 VOLUME /usr/src/app
+
+RUN exit

@@ -20,6 +20,8 @@ class Database {
       password: process.env.DB_PASSWORD,
       port: process.env.DB_PORT
     });
+
+    this.ACTIVITIES_NUM = 0;
   }
 
   connect() {
@@ -207,6 +209,17 @@ class Database {
       console.error(e.stack);
     });
 
+    const createUsers = this.client.query(
+      ` CREATE TABLE IF NOT EXISTS users (
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        user_id TEXT
+      )`
+    ).then(res => {
+      if (MODE !== 'prod') console.log('[init] Successfully created users table.');
+    }).catch(err => {
+      console.error(e.stack);
+    });
+
     return Promise.all([
       dropTracks,
       dropActivities,
@@ -216,7 +229,8 @@ class Database {
       createTracks,
       createActivities,
       createActivitiesTmp,
-      createDates
+      createDates,
+      createUsers
     ]);
   }
 
@@ -285,6 +299,9 @@ class Database {
   }
 
   createSchema() {
+    const BATCH_SIZE = 10;
+    const ITERATION_NUM = 4;
+
     const clientPromise = new Promise((resolve, reject) => {
       this.client.query('BEGIN', (err) => {
         if (err) reject(err);
@@ -292,37 +309,68 @@ class Database {
         // INSERT INTO listen_activities(user_id, track_id)
           // SELECT user_id::int, track_id
           // FROM listen_activities_tmp
-        this.client.query(`
-          SELECT * FROM listen_activities_tmp
-        `, (err, res) => {
 
-          console.table(res.rows);
 
-          if (err) reject(err);
-    
-          const insertDateText = (`
-            INSERT INTO dates(year, month, day)
-            VALUES %L
-            RETURNING year, month, day
-          `);
-          const insertDateValues = [
-            [1995, 7, 3],
-            [1995, 7, 2],
-            [1995, 7, 1]
-          ]
-          this.client.query(format(insertDateText, insertDateValues), (err, res) => {
+        for (let i = 0; i < ITERATION_NUM; i++) {
+          this.client.query(`
+            SELECT 
+              user_id,
+              track_id,
+              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS year,
+              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS month,
+              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS day
+            FROM listen_activities_tmp
+            LIMIT ${BATCH_SIZE}
+            OFFSET ${i*BATCH_SIZE}
+          `, (err, res) => {
             if (err) reject(err);
 
-            console.table(res.rows);
-    
-            this.client.query('COMMIT', (err) => {
-              if (err) {
-                console.error('Error committing transaction', err.stack)
-              }
-              resolve();
-            })
+            console.log(`\n\n~~ iteration [${i}] ~`);
+
+            if (res) {
+              console.table(res.rows);
+
+              const insertDateValues = res.rows.map(row => {
+                return [
+                  row.year,
+                  row.month,
+                  row.day
+                ]
+              });
+              // res.rows.forEach(row => {
+              //   console.log(row.date);
+              // });
+
+              // console.log(insertDateValues);
+      
+              const insertDateText = (`
+                INSERT INTO dates(year, month, day)
+                VALUES %L
+                RETURNING year, month, day
+              `);
+              // const insertDateValues = [
+              //   [1995, 7, 3],
+              //   [1995, 7, 2],
+              //   [1995, 7, 1]
+              // ]
+              this.client.query(format(insertDateText, insertDateValues), (err, res) => {
+                if (err) reject(err);
+
+                if (res) {
+                  console.table(res.rows);
+                }
+        
+              //   this.client.query('COMMIT', (err) => {
+              //     if (err) {
+              //       console.error('Error committing transaction', err.stack)
+              //     }
+              //     resolve();
+              //   })
+              })
+
+            }
           })
-        })
+        }
       })
     });
 

@@ -1,10 +1,5 @@
 version: '3'
 services:
-  # redis:
-  #   image: redis
-  #   networks:
-  #     - webnet
-
   web:
     image: million-song-challenge
     build: .
@@ -24,7 +19,8 @@ services:
       DB_PORT: 5432
     links:
       - db
-    restart: always
+    depends_on:
+      - db
 
   db:
     image: postgres
@@ -34,7 +30,6 @@ services:
       POSTGRES_USER: poe
       POSTGRES_PASSWORD: NIEpodam123
       POSTGRES_DB: million-song
-    restart: always
 
 networks:
   webnet:
