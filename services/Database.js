@@ -300,81 +300,68 @@ class Database {
 
   createSchema() {
     const BATCH_SIZE = 10;
-    const ITERATION_NUM = 4;
-
-    const clientPromise = new Promise((resolve, reject) => {
-      this.client.query('BEGIN', (err) => {
-        if (err) reject(err);
-
-        // INSERT INTO listen_activities(user_id, track_id)
-          // SELECT user_id::int, track_id
-          // FROM listen_activities_tmp
-
-
-        for (let i = 0; i < ITERATION_NUM; i++) {
-          this.client.query(`
-            SELECT 
-              user_id,
-              track_id,
-              TO_CHAR(TO_TIMESTAMP(activity_date), 'YYYY') AS year,
-              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS month,
-              TO_CHAR(TO_TIMESTAMP(activity_date), 'fmDD') AS day
-            FROM listen_activities_tmp
-            LIMIT ${BATCH_SIZE}
-            OFFSET ${i*BATCH_SIZE}
-          `, (err, res) => {
-            if (err) reject(err);
-
-            console.log(`\n\n~~ iteration [${i}] ~`);
-
-            if (res) {
-              console.table(res.rows);
-
-              const insertDateValues = res.rows.map(row => {
-                return [
-                  row.year,
-                  row.month,
-                  row.day
-                ]
-              });
-              // res.rows.forEach(row => {
-              //   console.log(row.date);
-              // });
-
-              // console.log(insertDateValues);
-      
-              const insertDateText = (`
-                INSERT INTO dates(year, month, day)
-                VALUES %L
-                RETURNING year, month, day
-              `);
-              // const insertDateValues = [
-              //   [1995, 7, 3],
-              //   [1995, 7, 2],
-              //   [1995, 7, 1]
-              // ]
-              this.client.query(format(insertDateText, insertDateValues), (err, res) => {
-                if (err) reject(err);
-
-                if (res) {
+    const ITERATION_NUM = 40;
+    let clientPromise;
+    const commitPromise = new Promise((commitResolve, commitReject) => {
+      clientPromise = new Promise((resolve, reject) => {
+        this.client.query('BEGIN', (err) => {
+          if (err) reject(err);
+  
+          (async function processArray() {
+            for (let i = 0; i < ITERATION_NUM; i++) {
+              await this.client.query(`
+                SELECT 
+                  user_id,
+                  track_id,
+                  TO_CHAR(TO_TIMESTAMP(activity_date), 'YYYY') AS year,
+                  TO_CHAR(TO_TIMESTAMP(activity_date), 'fmMM') AS month,
+                  TO_CHAR(TO_TIMESTAMP(activity_date), 'fmDD') AS day
+                FROM listen_activities_tmp
+                LIMIT ${BATCH_SIZE}
+                OFFSET ${i*BATCH_SIZE}
+              `).then(async res => {
+                
+                if (res.rowCount) {
+                  console.log('cos jest');
                   console.table(res.rows);
+    
+                  const insertDateValues = res.rows.map(row => {
+                    return [
+                      row.year,
+                      row.month,
+                      row.day
+                    ]
+                  });
+                  const insertDateText = (`
+                    INSERT INTO dates(year, month, day)
+                    VALUES %L
+                    RETURNING year, month, day
+                  `);
+  
+                  await this.client.query(format(insertDateText, insertDateValues)).then(async res => {
+                    if (res) {
+                      await this.client.query('COMMIT', (err) => {
+                        if (err) {
+                          console.error('Error committing transaction', err.stack)
+                        }
+                        commitResolve();
+                      })
+                    }
+                  })
+                } else {
+                  console.log('nie ma');
+                  resolve();
                 }
-        
-              //   this.client.query('COMMIT', (err) => {
-              //     if (err) {
-              //       console.error('Error committing transaction', err.stack)
-              //     }
-              //     resolve();
-              //   })
               })
-
             }
-          })
-        }
-      })
+          }.bind(this))();
+          
+        })
+      });
     });
 
-    return clientPromise;
+
+    return Promise.all([clientPromise, commitPromise]);
   }
 
   copyFromFiles() {
