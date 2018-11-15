@@ -21,8 +21,8 @@ sqlite3 main.db "CREATE INDEX activities_track_id ON activities (song_id);"
 echo "~ activities index created on track_id"
  
 sqlite3 main.db "CREATE TABLE queen_table (
- track_id varchar(18) NOT NULL,
- song_id varchar(18) NOT NULL,
+ track_id varchar(18),
+ song_id varchar(18),
  artist varchar(256) DEFAULT NULL,
  title varchar(256) DEFAULT NULL
 );"

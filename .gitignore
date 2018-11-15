@@ -1,4 +1,4 @@
 .DS_Store
 triplets_sample_20p.txt
 unique_tracks.txt
-example.db main.db
+*.db
