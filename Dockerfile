@@ -13,9 +13,15 @@ WORKDIR .
 # Copy dataset to working dir
 COPY unique_tracks.txt .
 COPY triplets_sample_20p.txt .
+COPY tracks_test.txt .
+COPY activities_test.txt .
+
+# Copy all scripts (procedures)
+RUN mkdir scripts
+COPY scripts/*.sh scripts/
 
 # Copy source code
-COPY sqlite_example.sh .
+COPY app.sh .
 
 # Run the app
 CMD bash app.sh

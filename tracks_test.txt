@@ -1,0 +1,10 @@
+62d251,a1,Kazik,12 Groszy
+q1,q1,Queen,Gejowska Piosenka
+62d25321,a3,Pink Floyd,Wall
+62d25432,a4,Nirvana,Lithium
+62d25432,a5,Nirvana,Smells like teen spirit
+62d25432,a6,Nirvana,Polly
+62d25432,a7,Green Day,American Idiot
+q2,q2,Queen,coś tam
+q3,q3,Queen,coś tas
+q4,q4,Queen,coś taasdaf
