@@ -10,7 +10,7 @@ sqlite3 example.db \
  song_id varchar(18) NOT NULL,
  artist varchar(256) DEFAULT NULL,
  title varchar(256) DEFAULT NULL,
- PRIMARY KEY (track_id)
+ PRIMARY KEY (song_id)
 );"
  
 echo "~ tracks table created"
