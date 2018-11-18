@@ -13,9 +13,7 @@
 #         |  |  |  |   \ '-'  |\ `--.|  \  \ .-'  `) 
 #         `--'  `--'    `--`--' `---'`--'`--'`----'  
                                              
-
-
-sqlite3 main.db \
+sqlite3 -separator ' ' main.db \
 "SELECT
   tracks.title, 
   tracks.artist, 

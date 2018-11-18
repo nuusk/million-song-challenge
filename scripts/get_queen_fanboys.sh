@@ -33,7 +33,7 @@ ORDER BY count(*)
 LIMIT(3)
 ;"
 
-sqlite3 main.db \
+sqlite3 -separator ' ' main.db \
 "SELECT
   activities.user_id
 FROM activities 

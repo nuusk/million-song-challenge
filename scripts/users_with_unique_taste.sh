@@ -11,9 +11,8 @@
 # '-.  .-'' ,-.  |(  .-''-.  .-'| .-. : 
 #   |  |  \ '-'  |.-'  `) |  |  \   --. 
 #   `--'   `--`--'`----'  `--'   `----' 
-                                      
 
-sqlite3 main.db \
+sqlite3 -separator ' ' main.db \
 "SELECT
   activities.user_id,
   COUNT(distinct tracks.song_id) AS uniq

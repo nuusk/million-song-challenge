@@ -12,7 +12,7 @@
 # \ '-'  |\ `--.  |  |  |  |  \    /  |  |  |  |  |  |\   --..-'  `) 
 #  `--`--' `---'  `--'  `--'   `--'   `--'  `--'  `--' `----'`----'  
                                                                    
-sqlite3 main.db \
+sqlite3 -separator ' ' main.db \
 "SELECT
   strftime('%m', datetime(activities.timestamp, 'unixepoch')) as mon, 
   COUNT(*)
